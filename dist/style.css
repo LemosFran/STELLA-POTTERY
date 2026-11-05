@@ -236,7 +236,7 @@
 .ticker-group{display:flex;align-items:center;justify-content:space-around;flex-shrink:0;min-width:100vw}
 .ticker-group>span{flex-shrink:0}
 .ticker-dot{padding:0 32px}
-.ticker:hover>.ticker-track{animation-play-state:paused}
+@media(hover:hover) and (pointer:fine){.ticker:hover>.ticker-track{animation-play-state:paused}}
 @keyframes ticker-loop{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 .ticker-group a{text-decoration:underline;text-underline-offset:3px}.ticker:focus-within>.ticker-track{animation-play-state:paused}

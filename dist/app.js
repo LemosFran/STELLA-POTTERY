@@ -26,6 +26,8 @@ if(memories){
  const copy=figure=>{const clone=figure.cloneNode(true);clone.setAttribute('aria-hidden','true');clone.querySelectorAll('img').forEach(img=>{img.alt='';img.loading='eager';img.draggable=false});return clone};
  originals.forEach(figure=>figure.querySelector('img').draggable=false);
  memories.prepend(...originals.map(copy));memories.append(...originals.map(copy));
+ const hoverCapability=matchMedia('(hover: hover) and (pointer: fine)');
+ let fractionalScroll=0;
  let loopWidth=0,paused=reduceMotion.matches,hovering=false,focused=false,dragging=false,visible=false,lastTime=0,startX=0,startScroll=0,manualUntil=0;
  const pauseButton=document.querySelector('[data-memories-pause]');
  function syncPause(){pauseButton.setAttribute('aria-pressed',String(paused));pauseButton.textContent=paused?'Play carousel':'Pause carousel'}
@@ -34,18 +36,21 @@ if(memories){
  memories.addEventListener('scroll',wrap,{passive:true});
  pauseButton.addEventListener('click',()=>{paused=!paused;syncPause()});
  document.querySelectorAll('[data-memories-direction]').forEach(button=>button.addEventListener('click',()=>{manualUntil=performance.now()+2200;memories.scrollLeft+=Number(button.dataset.memoriesDirection)*(originals[0].offsetWidth+24);wrap()}));
- memories.addEventListener('mouseenter',()=>hovering=true);memories.addEventListener('mouseleave',()=>hovering=false);
+ memories.addEventListener('pointerenter',event=>{hovering=hoverCapability.matches&&event.pointerType==='mouse'});
+ memories.addEventListener('pointerleave',()=>hovering=false);
+ hoverCapability.addEventListener('change',()=>{hovering=false});
  memories.addEventListener('focusin',()=>focused=true);memories.addEventListener('focusout',()=>focused=false);
  memories.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();manualUntil=performance.now()+2200;memories.scrollLeft+=(event.key==='ArrowLeft'?-1:1)*(originals[0].offsetWidth+24);wrap()}});
  memories.addEventListener('pointerdown',event=>{manualUntil=performance.now()+2200;if(event.pointerType!=='mouse')return;dragging=true;startX=event.clientX;startScroll=memories.scrollLeft;memories.setPointerCapture(event.pointerId);memories.classList.add('dragging')});
  memories.addEventListener('pointermove',event=>{if(dragging){memories.scrollLeft=startScroll+startX-event.clientX;if(loopWidth&&(memories.scrollLeft<loopWidth*.5||memories.scrollLeft>=loopWidth*1.5)){wrap();startScroll=memories.scrollLeft;startX=event.clientX}}});
  const endDrag=()=>{dragging=false;memories.classList.remove('dragging');manualUntil=performance.now()+2200};
  memories.addEventListener('pointerup',endDrag);memories.addEventListener('pointercancel',endDrag);
- memories.addEventListener('touchstart',()=>dragging=true,{passive:true});memories.addEventListener('touchend',endDrag,{passive:true});
+ memories.addEventListener('touchstart',()=>{dragging=true;hovering=false;fractionalScroll=0},{passive:true});memories.addEventListener('touchend',endDrag,{passive:true});
+ memories.addEventListener('touchcancel',endDrag,{passive:true});
  reduceMotion.addEventListener('change',()=>{paused=reduceMotion.matches;syncPause()});
  new ResizeObserver(measure).observe(memories);
  new IntersectionObserver(entries=>visible=entries[0].isIntersecting).observe(memories);
- function animate(time){const delta=lastTime?Math.min(time-lastTime,50):0;lastTime=time;if(visible&&!document.hidden&&!paused&&!hovering&&!focused&&!dragging&&time>manualUntil){memories.scrollLeft+=delta*.026;wrap()}requestAnimationFrame(animate)}
+ function animate(time){const delta=lastTime?Math.min(time-lastTime,50):0;lastTime=time;if(visible&&!document.hidden&&!paused&&!hovering&&!focused&&!dragging&&time>manualUntil){fractionalScroll+=delta*.026;const pixels=Math.floor(fractionalScroll);if(pixels){memories.scrollLeft+=pixels;fractionalScroll-=pixels;wrap()}}requestAnimationFrame(animate)}
  syncPause();measure();requestAnimationFrame(animate);
 }
 
